@@ -2,6 +2,15 @@
 
 The Yeti Borg is a Raspberry Pi controlled quad-car for programmed for object detection and avoidance. 
 
+---
+## Current issue
+
+* File: challenges/unknownObjectDetectionAndDistanceEstimation.py
+* Line 134: distance_to_camera alawys returns 90
+* Guide used for the code - https://pyimagesearch.com/2015/01/19/find-distance-camera-objectmarker-using-python-opencv/
+
+---
+
 ## Setup
 
 1. Create a hostpot with specific name and password
@@ -15,5 +24,4 @@ The Yeti Borg is a Raspberry Pi controlled quad-car for programmed for object de
 - Victor IJnzonides - vynzonides@gmail.com
 
 ## Note
-
 Project for the Robotics class in the Masters Computer Science track, Leiden University
