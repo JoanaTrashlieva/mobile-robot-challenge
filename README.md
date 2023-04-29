@@ -10,6 +10,10 @@ The Yeti Borg is a Raspberry Pi controlled quad-car for programmed for object de
     * Line 134: distance_to_camera alawys returns 90
     * Guide used for the code - https://pyimagesearch.com/2015/01/19/find-distance-camera-objectmarker-using-python-opencv/
 
+- [ ] Logic for moving around object needs to be implemented
+    * File: challenges/unknownObjectDetectionAndAvoidance.py
+    * Line 173: function to be implemented
+
 ---
 
 ## Setup
