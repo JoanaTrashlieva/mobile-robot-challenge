@@ -1,11 +1,10 @@
+#Based on the yetiRace code
+
 # Standard imports
 from __future__ import division
 import sys,tty,termios,os
 import time
-import math
 import cv2
-import numpy as np
-import keyboard
 
 from picamera.array import PiRGBArray
 from picamera import PiCamera
@@ -17,6 +16,10 @@ width = 640/2
 height = 480/2
 frameRate = 32
 
+#Define object 
+objectWidth = 7 #cm
+initialDistance = 90 #cm
+
 # Initializing the camera
 camera = PiCamera()
 camera.awb_mode = 'auto'
@@ -25,10 +28,8 @@ camera.framerate = frameRate
 rawCapture = PiRGBArray(camera, size=(int(width), int(height)))
 time.sleep(0.1)
 
-
 # Settings
 # Color setting for the mask
-
 hueLow = 0
 saturationLow = 88
 valueLow = 75
@@ -130,48 +131,121 @@ def Drive(right,left):
     ZB.SetMotor3(-maxPower + left) # Front left
     ZB.SetMotor4(-maxPower + left) # Rear left
 
+
 class _Getch:
     def __call__(self):
             fd = sys.stdin.fileno()
             old_settings = termios.tcgetattr(fd)
             try:
                 tty.setraw(sys.stdin.fileno())
-                ch = sys.stdin.read(1)
+                ch = sys.stdin.read(3)
             finally:
                 termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
             return ch
 
 def get():
-   inkey = _Getch()
-   while(1):
-      k=inkey()
-      if k!='':
-         break
-      if k!='':
-         print("manual")
-         return 2
-      else:
-         print("not an arrow key!")
+        inkey = _Getch()
+        while(1):
+                k=inkey()
+                if k!='':break
+        if k=='\x1b[A':
+                print("up")
+                return 1
+        elif k=='\x1b[B':
+                print("down")
+                return 0
+        else:
+                print("not an arrow key!")
+
+def distance_to_camera(objectWidth, focalLength, perWidth):
+    # compute and return the distance from the maker to the camera
+    print("objectWidth", objectWidth)
+    print("focalLength", focalLength)
+    print("perWidth", perWidth)
+    distance = (objectWidth * focalLength) / perWidth
+    print(type(distance))
+    print("distance", distance)
+    return (objectWidth * focalLength) / perWidth
+
+print('Press upper arrow to start the yetiborg')
+print('Press lower arrow to stop the yetiborg')
+
+def avoid_object(self):
+    # detect object
+    # move around it (use the width that's ~7cm to time side move)
+
+# Main loop for the yetiborg
+try:
+    for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
+        if ready == False:
+            ready = get()
+
+        # Grab the raw NumPy array representing the image, then initialize the timestamp and occupied/unoccupied text
+        # Flip frame for right orientation
+        imagePi = cv2.flip(frame.array,0)
+        imagePi = cv2.flip(imagePi,1)
+        canvas = imagePi.copy();
+
+        # Convert to hsv for better image processing
+        img_hsv = cv2.cvtColor(imagePi, cv2.COLOR_BGR2HSV)
+
+        # Generate mask with pre defined colors -> lower and upper bound
+        lower = (hueLow,saturationLow,valueLow)
+        upper = (hueHigh,saturationHigh,valueHigh)
+        mask = cv2.inRange(img_hsv, lower, upper)
+
+        # Create the contours and find the center
+        try:
+            # NB: using _ as the variable name for the output, as it is not used
+            contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) 
+            blob = max(contours, key=lambda el: cv2.contourArea(el))
+            #print(blob)
+
+            # returns [center,size][angle]
+            bounds = cv2.minAreaRect(blob)
+
+            focalLength = (bounds[1][0] * initialDistance) / objectWidth
+
+            #distance
+            cms = distance_to_camera(objectWidth, focalLength, bounds[1][0])
+            # print(cms) #  always 90????? :( 
+            
+            M = cv2.moments(blob)
+            center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+            xPos = center[0]
+            cv2.circle(canvas, center, 5, (0,255,0), -1) # small circle to be the center of the object
+
+        except (ValueError, ZeroDivisionError):
+            pass
+
+        # Main yetiborg code
+        if ready == True:
+
+            #Drive(0,0)
+
+            # Dynamic speed adjustment based on how far the line is from the center
+            something = abs(xPos - (width/2))
+            adjustValue = something/width
+           
+        # Displaying the windows for debuging
+        if displayWindows == True:
+            cv2.imshow("imagePi", imagePi)
+            cv2.imshow('canvas',canvas)
+            cv2.imshow('mask',mask)
 
 
-print('Press any key to start the yetiborg manually using wasd, q to quit')
-get()
+        key = cv2.waitKey(1) & 0xFF
+        # Clear the stream in preparation for the next frame
+        rawCapture.truncate(0)
+        # If the `q` key was pressed, break from the loop
+        if key == ord('q'):
+        	break
 
-inkey = _Getch()
-while(1):
-	k = inkey()
-	print(k)
-	if k=='':
-		time.sleep(0.1)
-	elif k=='w':
-		PerformDrive(0.01)
-	elif k=='d':
-		PerformSpin(1)
-	elif k=='a':
-		PerformSpin(-1)
-	elif k=='s':
-		PerformDrive(-0.01)
-	elif k=='q':
-		break
-	
-print("exit")
+except KeyboardInterrupt:
+    print('Interrupted')
+    #ZB.MotorsOff()
+    cv2.destroyAllWindows()
+    try:
+        sys.exit(0)
+    except SystemExit:
+        os._exit(0)

@@ -92,6 +92,12 @@ def get():
 
 def distance_to_camera(objectWidth, focalLength, perWidth):
     # compute and return the distance from the maker to the camera
+    print("objectWidth", objectWidth)
+    print("focalLength", focalLength)
+    print("perWidth", perWidth)
+    distance = (objectWidth * focalLength) / perWidth
+    print(type(distance))
+    print("distance", distance)
     return (objectWidth * focalLength) / perWidth
 
 print('Press upper arrow to start the yetiborg')
@@ -131,7 +137,7 @@ try:
 
             #distance
             cms = distance_to_camera(objectWidth, focalLength, bounds[1][0])
-            print(cms) #  always 90????? :( 
+            # print(cms) #  always 90????? :( 
             
             M = cv2.moments(blob)
             center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
@@ -147,8 +153,8 @@ try:
             #Drive(0,0)
 
             # Dynamic speed adjustment based on how far the line is from the center
-            distance = abs(xPos - (width/2))
-            adjustValue = distance/width
+            something = abs(xPos - (width/2))
+            adjustValue = something/width
            
         # Displaying the windows for debuging
         if displayWindows == True:
