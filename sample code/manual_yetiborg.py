@@ -27,6 +27,7 @@ time.sleep(0.1)
 
 
 # Settings
+
 # Color setting for the mask
 
 hueLow = 0
