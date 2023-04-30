@@ -8,6 +8,8 @@ import cv2
 
 from picamera.array import PiRGBArray
 from picamera import PiCamera
+import picamera
+from PIL import Image
 
 import ZeroBorg
 
@@ -43,8 +45,9 @@ displayWindows = False
 ready = False
 
 # Variables
-xPos = 0;
+xPos = 0
 steerMultiplier = 0.8
+
 
 # Setup the ZeroBorg
 ZB = ZeroBorg.ZeroBorg()
@@ -90,14 +93,53 @@ def get():
         else:
                 print("not an arrow key!")
 
+def find_focal_length():
+        with picamera.PiCamera() as cameraPi:
+            cameraPi.resolution = (640, 480)
+            cameraPi.capture('focalLengthCalibration.jpg')
+
+        # open the image file
+        image = Image.open('focalLengthCalibration.jpg')
+
+        # load the image data into a variable
+        image_data = image.load()
+
+        # Grab the raw NumPy array representing the image, then initialize the timestamp and occupied/unoccupied text
+        # Flip frame for right orientation
+        imagePi = cv2.flip(image.array,0)
+        imagePi = cv2.flip(image,1)
+        canvas = imagePi.copy();
+
+        # Convert to hsv for better image processing
+        img_hsv = cv2.cvtColor(imagePi, cv2.COLOR_BGR2HSV)
+
+        # Generate mask with pre defined colors -> lower and upper bound
+        lower = (hueLow,saturationLow,valueLow)
+        upper = (hueHigh,saturationHigh,valueHigh)
+        mask = cv2.inRange(img_hsv, lower, upper)
+
+        # Create the contours and find the center
+        try:
+            # NB: using _ as the variable name for the output, as it is not used
+            contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) 
+            blob = max(contours, key=lambda el: cv2.contourArea(el))
+            #print(blob)
+
+            # returns [center,size][angle]
+            bounds = cv2.minAreaRect(blob)
+
+            focalLength = (bounds[1][0] * initialDistance) / objectWidth
+        except (ValueError, ZeroDivisionError):
+            pass
+
 def distance_to_camera(objectWidth, focalLength, perWidth):
     # compute and return the distance from the maker to the camera
-    print("objectWidth", objectWidth)
-    print("focalLength", focalLength)
-    print("perWidth", perWidth)
+    # print("objectWidth", objectWidth)
+    # print("focalLength", focalLength)
+    # print("perWidth", perWidth)
     distance = (objectWidth * focalLength) / perWidth
-    print(type(distance))
-    print("distance", distance)
+    # print(type(distance))
+    # print("distance", distance)
     return (objectWidth * focalLength) / perWidth
 
 print('Press upper arrow to start the yetiborg')
@@ -105,6 +147,7 @@ print('Press lower arrow to stop the yetiborg')
 
 # Main loop for the yetiborg
 try:
+    find_focal_length()
     for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
         if ready == False:
             ready = get()
