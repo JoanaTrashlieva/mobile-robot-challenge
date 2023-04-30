@@ -1,1 +1,29 @@
-Problem
+Calculate distance: actual_distance = (actual_width * focal_length) / pixelwidth
+  https://pyimagesearch.com/2015/01/19/find-distance-camera-objectmarker-using-python-opencv/
+
+focal_length = (pixelwidth * actual_distance) / actual_width
+  focal_length = (pixelwidth (code measures it) * actual_distance (90) / actual_width (7cm)
+  
+get code to measure pixelwidth from object detection
+
+cv2.minAreaRect(blob)
+  https://theailearner.com/tag/cv2-minarearect/
+cv2.minAreaRect(blob) gives smalles rectale that isn't rotated yet and returns a Box2D structure
+  cv.minAreaRect() = (center(x,y), (width, height), angle of rotation)
+  
+  to get the rectangle that is rotated and shows the width, convert Box2D to 4 corner points
+      points = cv2.boxPoints(bounds)
+  
+  convert 4 points to integer type (either np.int32 or np.int64
+    rect = cv2minAreaRect(cnt)
+    box = cv2.BoxPoints(rect)
+    box = np.int0(box)
+  
+  https://www.linkedin.com/pulse/how-grab-object-dimensions-from-image-sabri-sansoy
+  
+  get width IF pixels per inch have been initialized
+    vert = bottomLeft[1] - topLeft[1]
+    horiz = topRight[0] - topLeft[0]
+  IF not initialized
+    boxHeight = vert / pixelsPerInch
+    boxWidth = horiz / pixelsPerInch
