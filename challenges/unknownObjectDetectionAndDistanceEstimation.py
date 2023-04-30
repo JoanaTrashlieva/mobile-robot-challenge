@@ -132,12 +132,15 @@ try:
 
             # returns [center,size][angle]
             bounds = cv2.minAreaRect(blob)
+            # cv2.minAreaRect() gives Box2D structure and not rotated rectangle around object
 
             focalLength = (bounds[1][0] * initialDistance) / objectWidth
+            # bounds[1][0] ? is that how cv2 calculates the width of the object?
 
             #distance
             cms = distance_to_camera(objectWidth, focalLength, bounds[1][0])
             # print(cms) #  always 90????? :( 
+            # doesn't save the focalLength as a global variable ? it keeps recalculating the focalLength 
             
             M = cv2.moments(blob)
             center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
