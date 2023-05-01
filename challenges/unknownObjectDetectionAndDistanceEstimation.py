@@ -5,6 +5,7 @@ from __future__ import division
 import sys,tty,termios,os
 import time
 import cv2
+import numpy as np
 
 from picamera.array import PiRGBArray
 from picamera import PiCamera
@@ -47,6 +48,9 @@ ready = False
 # Variables
 xPos = 0
 steerMultiplier = 0.8
+
+# focal length
+focalLength = 17578.5714286
 
 
 # Setup the ZeroBorg
@@ -94,9 +98,7 @@ def get():
                 print("not an arrow key!")
 
 def find_focal_length():
-        with picamera.PiCamera() as cameraPi:
-            cameraPi.resolution = (640, 480)
-            cameraPi.capture('focalLengthCalibration.jpg')
+        camera.capture('focalLengthCalibration.jpg')
 
         # open the image file
         image = Image.open('focalLengthCalibration.jpg')
@@ -106,9 +108,9 @@ def find_focal_length():
 
         # Grab the raw NumPy array representing the image, then initialize the timestamp and occupied/unoccupied text
         # Flip frame for right orientation
-        imagePi = cv2.flip(image.array,0)
-        imagePi = cv2.flip(image,1)
-        canvas = imagePi.copy();
+        imagePi = cv2.flip(image_data.array,0)
+        imagePi = cv2.flip(image_data,1)
+        canvas = imagePi.copy()
 
         # Convert to hsv for better image processing
         img_hsv = cv2.cvtColor(imagePi, cv2.COLOR_BGR2HSV)
@@ -134,12 +136,7 @@ def find_focal_length():
 
 def distance_to_camera(objectWidth, focalLength, perWidth):
     # compute and return the distance from the maker to the camera
-    # print("objectWidth", objectWidth)
-    # print("focalLength", focalLength)
-    # print("perWidth", perWidth)
     distance = (objectWidth * focalLength) / perWidth
-    # print(type(distance))
-    # print("distance", distance)
     return (objectWidth * focalLength) / perWidth
 
 print('Press upper arrow to start the yetiborg')
@@ -147,7 +144,7 @@ print('Press lower arrow to stop the yetiborg')
 
 # Main loop for the yetiborg
 try:
-    find_focal_length()
+    # find_focal_length()
     for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
         if ready == False:
             ready = get()
@@ -156,7 +153,7 @@ try:
         # Flip frame for right orientation
         imagePi = cv2.flip(frame.array,0)
         imagePi = cv2.flip(imagePi,1)
-        canvas = imagePi.copy();
+        canvas = imagePi.copy()
 
         # Convert to hsv for better image processing
         img_hsv = cv2.cvtColor(imagePi, cv2.COLOR_BGR2HSV)
@@ -177,12 +174,12 @@ try:
             bounds = cv2.minAreaRect(blob)
             # cv2.minAreaRect() gives Box2D structure and not rotated rectangle around object
 
-            focalLength = (bounds[1][0] * initialDistance) / objectWidth
+            # focalLength = (bounds[1][0] * initialDistance) / objectWidth
             # bounds[1][0] ? is that how cv2 calculates the width of the object?
 
             #distance
             cms = distance_to_camera(objectWidth, focalLength, bounds[1][0])
-            # print(cms) #  always 90????? :( 
+            print(cms) #  always 90????? :( 
             # doesn't save the focalLength as a global variable ? it keeps recalculating the focalLength 
             
             M = cv2.moments(blob)
@@ -212,6 +209,7 @@ try:
         key = cv2.waitKey(1) & 0xFF
         # Clear the stream in preparation for the next frame
         rawCapture.truncate(0)
+        camera.close()
         # If the `q` key was pressed, break from the loop
         if key == ord('q'):
         	break
