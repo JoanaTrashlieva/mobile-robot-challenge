@@ -1,3 +1,4 @@
+```python
 import cv2
 
 # Load the image
@@ -16,7 +17,8 @@ contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPL
 for contour in contours:
     # Find the minimum area rectangle
     rect = cv2.minAreaRect(contour)
-
+    
+    # New code is from here
     # Get the box points
     box = cv2.boxPoints(rect)
     box = np.int0(box)
@@ -28,3 +30,4 @@ for contour in contours:
 cv2.imshow('Image with Box', image)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
+```
