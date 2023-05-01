@@ -21,12 +21,12 @@ frameRate = 32
 
 #Define object 
 objectWidth = 7 #cm
-initialDistance = 90 #cm
 
 # Initializing the camera
 camera = PiCamera()
 camera.awb_mode = 'auto'
 camera.resolution = (int(width), int(height))
+buffer_size = width * height * 3
 camera.framerate = frameRate
 rawCapture = PiRGBArray(camera, size=(int(width), int(height)))
 time.sleep(0.1)
@@ -49,9 +49,8 @@ ready = False
 xPos = 0
 steerMultiplier = 0.8
 
-# focal length
-focalLength = 17578.5714286
-
+# Create variable for focal length - TODO needs recalculation in better 
+focalLength = 99.93995257786342
 
 # Setup the ZeroBorg
 ZB = ZeroBorg.ZeroBorg()
@@ -98,41 +97,36 @@ def get():
                 print("not an arrow key!")
 
 def find_focal_length():
-        camera.capture('focalLengthCalibration.jpg')
+    camera.capture(rawCapture, format="bgr", use_video_port=True)
+    image = rawCapture.array
+    img_flipped = np.fliplr(image)
+    img_flipped_again = np.fliplr(img_flipped)
 
-        # open the image file
-        image = Image.open('focalLengthCalibration.jpg')
+    img_hsv = cv2.cvtColor(img_flipped_again, cv2.COLOR_BGR2HSV)
 
-        # load the image data into a variable
-        image_data = image.load()
+    lower = np.array([100], dtype=np.uint8)
+    upper = np.array([200], dtype=np.uint8)
+    mask = cv2.inRange(img_hsv, lower, upper)
 
-        # Grab the raw NumPy array representing the image, then initialize the timestamp and occupied/unoccupied text
-        # Flip frame for right orientation
-        imagePi = cv2.flip(image_data.array,0)
-        imagePi = cv2.flip(image_data,1)
-        canvas = imagePi.copy()
+    # Create the contours and find the center
+    try:
+        # NB: using _ as the variable name for the output, as it is not used
+        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) 
+        blob = max(contours, key=lambda el: cv2.contourArea(el))
+        #print(blob)
 
-        # Convert to hsv for better image processing
-        img_hsv = cv2.cvtColor(imagePi, cv2.COLOR_BGR2HSV)
+        # returns [center,size][angle]
+        bounds = cv2.minAreaRect(blob)
+        print("Bounds: ", bounds[1][0])
+        # cv2.minAreaRect() gives Box2D structure and not rotated rectangle around object
 
-        # Generate mask with pre defined colors -> lower and upper bound
-        lower = (hueLow,saturationLow,valueLow)
-        upper = (hueHigh,saturationHigh,valueHigh)
-        mask = cv2.inRange(img_hsv, lower, upper)
+        # focalLength = (bounds[1][0] * initialDistance) / objectWidth
 
-        # Create the contours and find the center
-        try:
-            # NB: using _ as the variable name for the output, as it is not used
-            contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) 
-            blob = max(contours, key=lambda el: cv2.contourArea(el))
-            #print(blob)
+        print("Focal length: ", focalLength)
+        camera.close()
+    except (ValueError, ZeroDivisionError):
+        pass
 
-            # returns [center,size][angle]
-            bounds = cv2.minAreaRect(blob)
-
-            focalLength = (bounds[1][0] * initialDistance) / objectWidth
-        except (ValueError, ZeroDivisionError):
-            pass
 
 def distance_to_camera(objectWidth, focalLength, perWidth):
     # compute and return the distance from the maker to the camera
@@ -144,7 +138,10 @@ print('Press lower arrow to stop the yetiborg')
 
 # Main loop for the yetiborg
 try:
+    # print("Focal length: ", focalLength)
+    # Define focal length, but run only once
     # find_focal_length()
+
     for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
         if ready == False:
             ready = get()
@@ -172,6 +169,7 @@ try:
 
             # returns [center,size][angle]
             bounds = cv2.minAreaRect(blob)
+            print("Bounds: ", bounds[1][0])
             # cv2.minAreaRect() gives Box2D structure and not rotated rectangle around object
 
             # focalLength = (bounds[1][0] * initialDistance) / objectWidth
@@ -179,7 +177,7 @@ try:
 
             #distance
             cms = distance_to_camera(objectWidth, focalLength, bounds[1][0])
-            print(cms) #  always 90????? :( 
+            print("Distance: ",cms) #  always 90????? :( 
             # doesn't save the focalLength as a global variable ? it keeps recalculating the focalLength 
             
             M = cv2.moments(blob)
@@ -192,9 +190,6 @@ try:
 
         # Main yetiborg code
         if ready == True:
-
-            #Drive(0,0)
-
             # Dynamic speed adjustment based on how far the line is from the center
             something = abs(xPos - (width/2))
             adjustValue = something/width
@@ -205,11 +200,10 @@ try:
             cv2.imshow('canvas',canvas)
             cv2.imshow('mask',mask)
 
-
         key = cv2.waitKey(1) & 0xFF
         # Clear the stream in preparation for the next frame
         rawCapture.truncate(0)
-        camera.close()
+        # camera.close()
         # If the `q` key was pressed, break from the loop
         if key == ord('q'):
         	break

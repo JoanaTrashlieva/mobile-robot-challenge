@@ -50,40 +50,32 @@ xPos = 0
 steerMultiplier = 0.8
 
 # frame = camera.capture(rawCapture, format="bgr", use_video_port=True)
-# # Grab the raw NumPy array representing the image, then initialize the timestamp and occupied/unoccupied text
-# # Flip frame for right orientation
-# imagePi = cv2.flip(frame, 0)
-# imagePi = cv2.flip(imagePi,1)
-# canvas = imagePi.copy()
-
-img = cv2.imread("./pic.png", cv2.IMREAD_GRAYSCALE)
+camera.capture(rawCapture, format="bgr", use_video_port=True)
+image = rawCapture.array
+img_flipped = np.fliplr(image)
+img_flipped_again = np.fliplr(img_flipped)
 
 # Convert to hsv for better image processing
-# img_norm = cv2.normalize(imagePi, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX, dtype=np.uint8)
-# img_hsv = cv2.cvtColor(img_norm, cv2.COLOR_BGR2HSV)
+img_hsv = cv2.cvtColor(img_flipped_again, cv2.COLOR_BGR2HSV)
 
 # Generate mask with pre defined colors -> lower and upper bound
-# lower = (hueLow,saturationLow,valueLow)
-# upper = (hueHigh,saturationHigh,valueHigh)
 lower = np.array([100], dtype=np.uint8)
 upper = np.array([200], dtype=np.uint8)
-mask = cv2.inRange(img, lower, upper)
+mask = cv2.inRange(img_hsv, lower, upper)
 
 # Create the contours and find the center
 try:
     # NB: using _ as the variable name for the output, as it is not used
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE) 
     blob = max(contours, key=lambda el: cv2.contourArea(el))
-    #print(blob)
 
     # returns [center,size][angle]
     bounds = cv2.minAreaRect(blob)
-    print(bounds[1][0])
-    # cv2.minAreaRect() gives Box2D structure and not rotated rectangle around object
-
+    print("Bounds: ", bounds[1][0])
+    
     focalLength = (bounds[1][0] * initialDistance) / objectWidth
 
-    print(focalLength)
+    print("Focal length: ", focalLength)
     camera.close()
 except (ValueError, ZeroDivisionError):
     pass
