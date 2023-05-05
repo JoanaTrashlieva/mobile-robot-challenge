@@ -5,10 +5,14 @@ The Yeti Borg is a Raspberry Pi controlled quad-car for programmed for object de
 ---
 ## Current issue
 
-- [ ] Distance is always 90
+- [x] Distance is always 90
     * File: challenges/unknownObjectDetectionAndDistanceEstimation.py
     * Line 134: distance_to_camera alawys returns 90
     * Guide used for the code - https://pyimagesearch.com/2015/01/19/find-distance-camera-objectmarker-using-python-opencv/
+
+    *Solved:*
+
+    ![Output  of distanceEstimation.py](media/distanceEstimationOutput.png "Output of distanceEstimation.py")
 
 - [ ] Logic for moving around object needs to be implemented
     * File: challenges/unknownObjectDetectionAndAvoidance.py
