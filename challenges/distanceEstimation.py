@@ -29,7 +29,6 @@ time.sleep(0.1)
 
 
 # Settings
-
 # Color setting for the mask
 
 hueLow = 0
@@ -48,24 +47,11 @@ ready = False
 xPos = 0
 steerMultiplier = 0.8
 
-# # Setup the ZeroBorg
-# ZB = ZeroBorg.ZeroBorg()
-# #ZB.i2cAddress = 0x44                   # Uncomment and change the value if you have changed the board address
-# ZB.Init()
-# if not ZB.foundChip:
-#     boards = ZeroBorg.ScanForZeroBorg()
-#     if len(boards) == 0:
-#         print ('No ZeroBorg found, check you are attached :)')
-#     else:
-#         print ('No ZeroBorg at address %02X, but we did find boards:' % (ZB.i2cAddress))
-#         for board in boards:
-#             print ('    %02X (%d)' % (board, board))
-#         print ('If you need to change the IC address change the setup line so it is correct, e.g.')
-#         print ('ZB.i2cAddress = 0x%02X' % (boards[0]))
-#     sys.exit()
-# #ZB.SetEpoIgnore(True)                  # Uncomment to disable EPO latch, needed if you do not have a switch / jumper
-# ZB.SetCommsFailsafe(False)              # Disable the communications failsafe
-# ZB.ResetEpo()
+# Array to store distance and calculate median
+medianDistanceArray = []
+
+# Array to give one final result
+finalDistanceArray = []
 
 class _Getch:
     def __call__(self):
@@ -111,11 +97,8 @@ def distance_to_camera(knownWidth, focalLength, perWidth):
 	# compute and return the distance from the maker to the camera
 	return (knownWidth * focalLength) / perWidth
 
-KNOWN_DISTANCE = 24.0 #inch
-KNOWN_WIDTH = 2.0 #inch
-
-print('Press upper arrow to start the yetiborg')
-print('Press lower arrow to stop the yetiborg')
+KNOWN_DISTANCE = 50 #cm
+KNOWN_WIDTH = 5.5 #cm
 
 # Main loop for the yetiborg
 try:
@@ -137,19 +120,22 @@ try:
 
     marker = find_marker(imagePi)
     focalLength = (marker[1][0] * KNOWN_DISTANCE) / KNOWN_WIDTH
-    print("Focal length is: ",focalLength)
+    print('Focal length is: ', focalLength)
     
     for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
-        if ready == False:
-            ready = get()
-            print(ready)
-
         imageArray = np.array(rawCapture.array)
-        #img = cv2.imread(imageArray)
         marker = find_marker(imageArray)
-        inches = distance_to_camera(KNOWN_WIDTH, focalLength, marker[1][0])
+        cms = distance_to_camera(KNOWN_WIDTH, focalLength, marker[1][0])
 
-        print("Distance from camera to object: ",inches)
+        # Store values in an array, after 5 itterations get median
+        if len(medianDistanceArray) < 5:
+            medianDistanceArray.append(cms)
+            print('measurement', cms)
+        else:
+            medianDistance =np.median(medianDistanceArray)
+            medianDistanceArray = []
+            print('Distance to object is :', medianDistance)
+            
         sleep(1)
 
         key = cv2.waitKey(1) & 0xFF
