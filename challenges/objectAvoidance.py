@@ -218,16 +218,38 @@ try:
         # Main yetiborg code
         if ready == True:
 
-            # Drive(0.1,0.1)
 
-            print('distance', cms)
+            # Avoidance code starts here
+
+            # Start driving slowly
+            Drive(0.1,0.1)
+
+            # If detect object top
             if cms < 50:
                 Drive(0,0)
-            else:
-                Drive(0.1,0.1)
 
-            # Might need to change it to drive for a certain period of time and then read distance again
-            # for more reliable distance measurement
+            # turn right for X time
+            Drive(0.1,0) #values might need reversing, not sure which one is left and right motors
+            sleep(2)
+
+            # turn left for X time
+            Drive(0,0.1) #values might need reversing, not sure which one is left and right motors
+            sleep(2)
+
+            # turn left again for X time
+            Drive(0,0.1) #values might need reversing, not sure which one is left and right motors
+            sleep(2)
+
+            # turn right to face initial direction
+            Drive(0.1,0) #values might need reversing, not sure which one is left and right motors
+            sleep(2)
+
+            # continue forward for X time
+            Drive(0.1,0.1)
+            sleep(2)
+
+            # stop
+            Drive(0,0)
 
         key = cv2.waitKey(1) & 0xFF
         # Clear the stream in preparation for the next frame
