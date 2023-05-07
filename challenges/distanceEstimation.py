@@ -47,11 +47,12 @@ ready = False
 xPos = 0
 steerMultiplier = 0.8
 
+# Initial hardcoded values for calculating the focal length
+KNOWN_DISTANCE = 50 #cm
+KNOWN_WIDTH = 5.5 #cm
+
 # Array to store distance and calculate median
 medianDistanceArray = []
-
-# Array to give one final result
-finalDistanceArray = []
 
 class _Getch:
     def __call__(self):
@@ -111,8 +112,7 @@ def distance_to_camera(knownWidth, focalLength, perWidth):
 	# compute and return the distance from the maker to the camera
 	return (knownWidth * focalLength) / perWidth
 
-KNOWN_DISTANCE = 50 #cm
-KNOWN_WIDTH = 5.5 #cm
+
 
 # Main loop for the yetiborg
 try:
