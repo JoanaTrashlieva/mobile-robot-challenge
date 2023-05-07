@@ -191,6 +191,7 @@ try:
             center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
             xPos = center[0]
             cv2.circle(canvas, center, 5, (0,255,0), -1)
+            cv2.imwrite('race.png', canvas)
 
         except (ValueError, ZeroDivisionError):
             pass

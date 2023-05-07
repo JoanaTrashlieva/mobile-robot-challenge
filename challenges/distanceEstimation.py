@@ -84,10 +84,24 @@ def find_marker(image):
     gray = cv2.GaussianBlur(gray, (5, 5), 0)
     edged = cv2.Canny(gray, 35, 125)
 
-    cnts, _ = cv2.findContours(edged, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    lower = (hueLow,saturationLow,valueLow)
+    upper = (hueHigh,saturationHigh,valueHigh)
+    mask = cv2.inRange(gray, lower, upper)
+
+    cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     if len(cnts) > 0:
         # Find the contour with the largest area
-        c = max(cnts, key=cv2.contourArea)
+        c = max(cnts, key=lambda el: cv2.contourArea(el))
+
+        # finds the center of an object
+        M = cv2.moments(c)
+        # print(M)
+        center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+        xPos = center[0]
+        cv2.circle(canvas, center, 5, (0,255,0), -1)
+
+        #save canvas to image to be displayed
+        cv2.imwrite('output.png', canvas)
     else:
         print('No contours found in the image')
 	# compute the bounding box of the of the paper region and return it
@@ -118,9 +132,13 @@ try:
     imagePi = cv2.flip(img,0)
     imagePi = cv2.flip(imagePi,1)
 
+    # create a canvas to display edges
+    canvas = imagePi.copy()
+
     marker = find_marker(imagePi)
-    focalLength = (marker[1][0] * KNOWN_DISTANCE) / KNOWN_WIDTH
-    print('Focal length is: ', focalLength)
+    # focalLength = (marker[1][0] * KNOWN_DISTANCE) / KNOWN_WIDTH
+    focalLength = 234.26
+    # print('Focal length is: ', focalLength)
     
     for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
         imageArray = np.array(rawCapture.array)

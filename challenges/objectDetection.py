@@ -225,8 +225,8 @@ try:
         if ready == True:
 
             # Detection code starts here
-            # Start tutning in circles slowly
-            Drive(0.1,0.1)
+            # Start tutning in circles slowly - test direction
+            Drive(0.1,0)
 
             # if only one measurement for distance, measure again
             if len(distanceComparisonArray) <= 1:
