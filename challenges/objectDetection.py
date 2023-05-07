@@ -37,6 +37,14 @@ hueHigh = 11
 saturationHigh = 255
 valueHigh = 251
 
+# Toggles for debuging
+displayWindows = False
+ready = False
+
+# Variables
+xPos = 0;
+steerMultiplier = 0.8
+
 # Initial hardcoded values for calculating the focal length - TODO change with user input
 KNOWN_DISTANCE = 50 #cm
 KNOWN_WIDTH = 5.5 #cm
@@ -44,29 +52,33 @@ KNOWN_WIDTH = 5.5 #cm
 # Array to store distance and calculate median
 medianDistanceArray = []
 
-# Distance array to store current and last seen distance
-distanceComparisonArray = []
-
-# Toggles for debuging
-displayWindows = False
-ready = False
-
-# Variables
-xPos = 0
-steerMultiplier = 0.8
-
 def find_marker(image):
 	# convert the image to grayscale, blur it, and detect edges
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     gray = cv2.GaussianBlur(gray, (5, 5), 0)
     edged = cv2.Canny(gray, 35, 125)
 
-    cnts, _ = cv2.findContours(edged, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    lower = (hueLow,saturationLow,valueLow)
+    upper = (hueHigh,saturationHigh,valueHigh)
+    mask = cv2.inRange(gray, lower, upper)
+
+    cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     if len(cnts) > 0:
         # Find the contour with the largest area
-        c = max(cnts, key=cv2.contourArea)
+        c = max(cnts, key=lambda el: cv2.contourArea(el))
+
+        # finds the center of an object
+        M = cv2.moments(c)
+        # print(M)
+        center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+        xPos = center[0]
+        cv2.circle(canvas, center, 5, (0,255,0), -1)
+
+        #save canvas to image to be displayed
+        cv2.imwrite('stopAsCloseAsPossible.png', canvas)
     else:
         print('No contours found in the image')
+        ZB.MotorsOff()
 	# compute the bounding box of the of the paper region and return it
     return cv2.minAreaRect(c)
 
@@ -203,55 +215,42 @@ try:
     # Flip frame for right orientation
     imagePi = cv2.flip(img,0)
     imagePi = cv2.flip(imagePi,1)
-    
+
+    # create a canvas to display edges
+    canvas = imagePi.copy()
 
     marker = find_marker(imagePi)
-    focalLength = (marker[1][0] * KNOWN_DISTANCE) / KNOWN_WIDTH
+    # focalLength = (marker[1][0] * KNOWN_DISTANCE) / KNOWN_WIDTH
+    focalLength = 234.26
     print('Focal length is: ', focalLength)
 
-    if ready == False:
+    for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
+        if ready == False:
             ready = get()
             print(ready)
-
-    for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
+        
         imageArray = np.array(rawCapture.array)
         marker = find_marker(imageArray)
         cms = distance_to_camera(KNOWN_WIDTH, focalLength, marker[1][0])
 
-        # Add measured ditance to array for comaprison
-        distanceComparisonArray.append(cms)
-
         # Main yetiborg code
         if ready == True:
 
-            # Detection code starts here
-            # Start tutning in circles slowly - test direction
-            Drive(0.1,0)
+            # start tuning right 
+            # Drive(0.1,0)
 
-            # if only one measurement for distance, measure again
-            if len(distanceComparisonArray) <= 1:
-                cmsNew = distance_to_camera(KNOWN_WIDTH, focalLength, marker[1][0])
-                distanceComparisonArray.append(cmsNew)
-            
-            # compare distances
-            if len(distanceComparisonArray) == 2:
-                # if new distance is smaller than the first, stop rotating
-                if distanceComparisonArray[0] > distanceComparisonArray[1]:
-                    Drive(0,0)
-                    # should be facing object now
+            # Dynamic speed adjustment based on how far the line is from the center
+            distanceFromCenter = abs(xPos - (width/2))
+            print(distanceFromCenter)
+            print(xPos)
+            adjustValue = distanceFromCenter/width
+            print("adjust: " + str(adjustValue))
 
-                    # move forward 
-                    Drive(0.1,0.1)
-                    # If near object stop
-                    if cms < 50:
-                        Drive(0,0)
+            if xPos > width/2:
+                Drive(adjustValue,0)
 
-            # empty array for next itteration
-            distanceComparisonArray = []
-
-            # If near sth stop
-            if cms < 50:
-                Drive(0,0)
+            if xPos < width/2:
+                Drive(0,adjustValue)      
 
         key = cv2.waitKey(1) & 0xFF
         # Clear the stream in preparation for the next frame
@@ -262,6 +261,7 @@ try:
 
 except KeyboardInterrupt:
     print('Interrupted')
+    ZB.MotorsOff()
     cv2.destroyAllWindows()
     try:
         sys.exit(0)
