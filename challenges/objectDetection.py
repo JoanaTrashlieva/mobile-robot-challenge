@@ -76,11 +76,12 @@ def find_marker(image):
 
         #save canvas to image to be displayed
         cv2.imwrite('stopAsCloseAsPossible.png', canvas)
+        return cv2.minAreaRect(c)
     else:
         print('No contours found in the image')
         ZB.MotorsOff()
 	# compute the bounding box of the of the paper region and return it
-    return cv2.minAreaRect(c)
+    return None
 
 def distance_to_camera(knownWidth, focalLength, perWidth):
 	# compute and return the distance from the maker to the camera
@@ -219,10 +220,10 @@ try:
     # create a canvas to display edges
     canvas = imagePi.copy()
 
-    marker = find_marker(imagePi)
+    # marker = find_marker(imagePi)
     # focalLength = (marker[1][0] * KNOWN_DISTANCE) / KNOWN_WIDTH
     focalLength = 234.26
-    print('Focal length is: ', focalLength)
+    # print('Focal length is: ', focalLength)
 
     for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
         if ready == False:
@@ -235,14 +236,11 @@ try:
 
         # Main yetiborg code
         if ready == True:
-
             # start tuning right 
-            # Drive(0.1,0)
+            Drive(0,0)
 
             # Dynamic speed adjustment based on how far the line is from the center
             distanceFromCenter = abs(xPos - (width/2))
-            print(distanceFromCenter)
-            print(xPos)
             adjustValue = distanceFromCenter/width
             print("adjust: " + str(adjustValue))
 
@@ -250,7 +248,7 @@ try:
                 Drive(adjustValue,0)
 
             if xPos < width/2:
-                Drive(0,adjustValue)      
+                Drive(0,adjustValue) 
 
         key = cv2.waitKey(1) & 0xFF
         # Clear the stream in preparation for the next frame
