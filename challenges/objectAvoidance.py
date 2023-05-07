@@ -37,6 +37,14 @@ hueHigh = 11
 saturationHigh = 255
 valueHigh = 251
 
+# Toggles for debuging
+displayWindows = False
+ready = False
+
+# Variables
+xPos = 0;
+steerMultiplier = 0.8
+
 # Initial hardcoded values for calculating the focal length - TODO change with user input
 KNOWN_DISTANCE = 50 #cm
 KNOWN_WIDTH = 5.5 #cm
@@ -44,26 +52,33 @@ KNOWN_WIDTH = 5.5 #cm
 # Array to store distance and calculate median
 medianDistanceArray = []
 
-# Toggles for debuging
-displayWindows = False
-ready = False
-
-# Variables
-xPos = 0
-steerMultiplier = 0.8
-
 def find_marker(image):
 	# convert the image to grayscale, blur it, and detect edges
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     gray = cv2.GaussianBlur(gray, (5, 5), 0)
     edged = cv2.Canny(gray, 35, 125)
 
-    cnts, _ = cv2.findContours(edged, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    lower = (hueLow,saturationLow,valueLow)
+    upper = (hueHigh,saturationHigh,valueHigh)
+    mask = cv2.inRange(gray, lower, upper)
+
+    cnts, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     if len(cnts) > 0:
         # Find the contour with the largest area
-        c = max(cnts, key=cv2.contourArea)
+        c = max(cnts, key=lambda el: cv2.contourArea(el))
+
+        # finds the center of an object
+        M = cv2.moments(c)
+        # print(M)
+        center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+        xPos = center[0]
+        cv2.circle(canvas, center, 5, (0,255,0), -1)
+
+        #save canvas to image to be displayed
+        cv2.imwrite('stopAsCloseAsPossible.png', canvas)
     else:
         print('No contours found in the image')
+        ZB.MotorsOff()
 	# compute the bounding box of the of the paper region and return it
     return cv2.minAreaRect(c)
 
@@ -200,56 +215,65 @@ try:
     # Flip frame for right orientation
     imagePi = cv2.flip(img,0)
     imagePi = cv2.flip(imagePi,1)
-    
+
+    # create a canvas to display edges
+    canvas = imagePi.copy()
 
     marker = find_marker(imagePi)
-    focalLength = (marker[1][0] * KNOWN_DISTANCE) / KNOWN_WIDTH
+    # focalLength = (marker[1][0] * KNOWN_DISTANCE) / KNOWN_WIDTH
+    focalLength = 234.26
     print('Focal length is: ', focalLength)
 
-    if ready == False:
-            ready = get()
-            print(ready)
 
     for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
+        if ready == False:
+            ready = get()
+            print(ready)
+        
         imageArray = np.array(rawCapture.array)
         marker = find_marker(imageArray)
         cms = distance_to_camera(KNOWN_WIDTH, focalLength, marker[1][0])
+        print(cms)
 
         # Main yetiborg code
         if ready == True:
 
-
-            # Avoidance code starts here
-
-            # Start driving slowly
-            Drive(0.1,0.1)
-
-            # If detect object top
-            if cms < 50:
-                Drive(0,0)
-
-            # turn right for X time
-            Drive(0.1,0) #values might need reversing, not sure which one is left and right motors
-            sleep(2)
-
-            # turn left for X time
-            Drive(0,0.1) #values might need reversing, not sure which one is left and right motors
-            sleep(2)
-
-            # turn left again for X time
-            Drive(0,0.1) #values might need reversing, not sure which one is left and right motors
-            sleep(2)
-
-            # turn right to face initial direction
-            Drive(0.1,0) #values might need reversing, not sure which one is left and right motors
-            sleep(2)
-
-            # continue forward for X time
-            Drive(0.1,0.1)
-            sleep(2)
-
-            # stop
             Drive(0,0)
+
+            print('distance', cms)
+            if cms < 20:
+                # turn right
+                Drive(1,0) # turning right Drive(left motor, right motor)
+                sleep(1.5)
+                # drive
+                Drive(0.1,0.1)
+                sleep(1.5)
+                # turn left
+                Drive(0,1) 
+                sleep(1.5)
+                # drive
+                Drive(0.1,0.1)
+                sleep(3)
+                # turn left
+                Drive(0,1) 
+                sleep(1.5)
+                # drive
+                Drive(0.1,0.1)
+                sleep(1.5)
+                # turn right
+                Drive(1,0)
+                sleep(1.5)
+                # drive
+                Drive(0.1,0.1)
+                sleep(1.5)
+                ZB.MotorsOff()
+                break
+            else:
+                # drive
+                Drive(0.1,0.1)
+
+            # Might need to change it to drive for a certain period of time and then read distance again
+            # for more reliable distance measurement
 
         key = cv2.waitKey(1) & 0xFF
         # Clear the stream in preparation for the next frame
@@ -260,6 +284,7 @@ try:
 
 except KeyboardInterrupt:
     print('Interrupted')
+    ZB.MotorsOff()
     cv2.destroyAllWindows()
     try:
         sys.exit(0)
