@@ -6,3 +6,10 @@ There are two files in there that we can both use to try and change to see which
 
 How another group who had the same findobject issue solved is, is by putting the findobject function inside the main loop that makes the robot move, so that way if no object is found the robot turns to the other (else) part of the loop and keeps turning around until it has found something
   - so not having a predefined function findobject/findmarker that is called inside the mainloop
+
+objectDetection.py:
+The order of code has been changed since Sunday.
+the code is checking if the "marker" is empty (None), if it's empty, the robot spins around in a circle.
+if it breaks out of the loop, it calculates the distance and acts accordingly.
+for now the robot keeps spinning around forever. So, I think the ERROR is that marker is always empty.
+Somewhere later the marker needs to be defined again, or the order of statements needs to be altered slightly.
