@@ -1,1 +1,5 @@
 There are two files in there that we can both use to try and change to see which one can be working
+
+  vic.py: error where the yetiborg package isn't installed so it's not used
+          - possible solutions: installing yetiborg package OR using zeroborg package drive and turn function
+          - use driving functions that are in the myrace.py file
