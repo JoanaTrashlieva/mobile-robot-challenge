@@ -1,7 +1,8 @@
 There are two files in there that we can both use to try and change to see which one can be working
 
   vic.py: error where the yetiborg package isn't installed so it's not used
-          - possible solutions: installing yetiborg package OR using zeroborg package drive and turn function
+          - possible solutions: installing yetiborg package ( sudo apt-get install yetiborg )
+          - using zeroborg package drive and turn function
           - use driving functions that are in the myrace.py file
 
 How another group who had the same findobject issue solved is, is by putting the findobject function inside the main loop that makes the robot move, so that way if no object is found the robot turns to the other (else) part of the loop and keeps turning around until it has found something
